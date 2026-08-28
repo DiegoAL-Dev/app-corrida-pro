@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Corrida Pro - Tracker</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
+        body { font-family: 'Inter', sans-serif; background-color: #f3f4f6; }
+        .gradient-card { background: linear-gradient(135deg, #10b981 0%, #059669 100%); }
+    </style>
+</head>
+<body class="p-4 md:p-8">
+
+    <div class="max-w-5xl mx-auto">
+        
+        <!-- ================= TELA DE LOGIN ================= -->
+        <div id="telaLogin" class="max-w-md mx-auto bg-white p-8 rounded-2xl shadow-sm border border-gray-100 mt-10">
+            <h2 class="text-2xl font-bold text-gray-800 text-center mb-2">Corrida Pro</h2>
+            <p class="text-gray-500 text-center mb-6 text-sm">Acesse sua pasta de treinos</p>
+            
+            <form id="loginForm" class="space-y-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-600">Usuário</label>
+                    <input type="text" id="username" placeholder="ex: mikael.araujo" required class="w-full mt-1 p-2 border rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-600">Senha</label>
+                    <input type="password" id="password" required class="w-full mt-1 p-2 border rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none">
+                </div>
+                
+                <div class="flex gap-4 pt-2">
+                    <button type="submit" onclick="fazerLogin(event)" class="w-full gradient-card text-white py-2 rounded-xl font-bold hover:opacity-90 transition">Entrar</button>
+                    <button type="button" onclick="registrarUsuario()" class="w-full bg-gray-200 text-gray-700 py-2 rounded-xl font-bold hover:bg-gray-300 transition">Criar Conta</button>
+                </div>
+                <p id="loginMsg" class="text-red-500 text-sm text-center hidden"></p>
+            </form>
+        </div>
+
+        <!-- ================= DASHBOARD (ÁREA LOGADA) ================= -->
+        <div id="telaDashboard" class="hidden">
+            <!-- Header -->
+            <header class="mb-8 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                <div>
+                    <h1 class="text-3xl font-bold text-gray-800">Meus Treinos</h1>
+                    <p class="text-gray-500">Corredor: <span id="nomeUsuarioVisualizacao" class="font-semibold text-emerald-600"></span></p>
+                </div>
+                <div class="flex gap-4 items-center">
+                    <button onclick="limparDados()" class="text-sm text-red-500 hover:underline">Limpar Histórico</button>
+                    <button onclick="fazerLogout()" class="bg-gray-800 text-white px-4 py-2 rounded-lg text-sm hover:bg-gray-700 transition">Sair</button>
+                </div>
+            </header>
+
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                
+                <!-- Coluna de Cadastro -->
+                <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+                    <h2 class="text-xl font-semibold mb-4 text-gray-700">Novo Treino</h2>
+                    <form id="treinoForm" class="space-y-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-600">Data</label>
+                            <input type="date" id="data" required class="w-full mt-1 p-2 border rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-600">Distância (km)</label>
+                            <input type="number" id="distancia" step="0.01" placeholder="Ex: 5.2" required class="w-full mt-1 p-2 border rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-600">Tempo Total (minutos)</label>
+                            <input type="number" id="tempo" step="0.01" placeholder="Ex: 25" required class="w-full mt-1 p-2 border rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none">
+                        </div>
+                        <button type="submit" class="w-full gradient-card text-white py-3 rounded-xl font-bold hover:opacity-90 transition shadow-lg">Registrar Treino</button>
+                    </form>
+                </div>
+
+                <!-- Coluna de Estatísticas e Gráfico -->
+                <div class="md:col-span-2 space-y-6">
+                    
+                    <!-- Cards de Resumo -->
+                    <div class="grid grid-cols-2 md:grid-cols-3 gap-4">
+                        <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-100">
+                            <p class="text-gray-500 text-sm">Total de Km</p>
+                            <p id="totalKm" class="text-2xl font-bold text-emerald-600">0.0</p>
+                        </div>
+                        <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-100">
+                            <p class="text-gray-500 text-sm">Pace Médio</p>
+                            <p id="paceMedioGlobal" class="text-2xl font-bold text-blue-600">0:00</p>
+                        </div>
+                        <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-100 hidden md:block">
+                            <p class="text-gray-500 text-sm">Treinos</p>
+                            <p id="totalTreinos" class="text-2xl font-bold text-gray-700">0</p>
+                        </div>
+                    </div>
+
+                    <!-- Container do Gráfico -->
+                    <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+                        <h3 class="text-gray-700 font-semibold mb-4">Evolução do Pace (Quanto menor, melhor)</h3>
+                        <canvas id="graficoEvolucao" height="120"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tabela de Histórico -->
+            <div class="mt-8 bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+                <table class="w-full text-left">
+                    <thead class="bg-gray-50">
+                        <tr>
+                            <th class="p-4 text-gray-600 font-semibold">Data</th>
+                            <th class="p-4 text-gray-600 font-semibold">Distância</th>
+                            <th class="p-4 text-gray-600 font-semibold">Tempo</th>
+                            <th class="p-4 text-gray-600 font-semibold">Pace (min/km)</th>
+                        </tr>
+                    </thead>
+                    <tbody id="listaTreinos">
+                        <!-- Inserido via JS -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ================= SISTEMA DE USUÁRIOS E LOGIN =================
+        let dbUsuarios = JSON.parse(localStorage.getItem('corridaApp_usuarios')) || {};
+        let usuarioLogado = localStorage.getItem('corridaApp_logado') || null;
+        let meuGrafico = null;
+
+        function verificarSessao() {
+            if (usuarioLogado) {
+                document.getElementById('telaLogin').classList.add('hidden');
+                document.getElementById('telaDashboard').classList.remove('hidden');
+                document.getElementById('nomeUsuarioVisualizacao').innerText = usuarioLogado;
+                atualizarDashboard();
+            } else {
+                document.getElementById('telaLogin').classList.remove('hidden');
+                document.getElementById('telaDashboard').classList.add('hidden');
+            }
+        }
+
+        function mostrarMensagem(id, texto, sucesso = false) {
+            const el = document.getElementById(id);
+            el.innerText = texto;
+            el.classList.remove('hidden', 'text-red-500', 'text-emerald-500');
+            el.classList.add(sucesso ? 'text-emerald-500' : 'text-red-500');
+            setTimeout(() => el.classList.add('hidden'), 3000);
+        }
+
+        function registrarUsuario() {
+            const user = document.getElementById('username').value.trim();
+            const pass = document.getElementById('password').value.trim();
+
+            if (!user || !pass) return mostrarMensagem('loginMsg', 'Preencha usuário e senha!');
+            if (dbUsuarios[user]) return mostrarMensagem('loginMsg', 'Usuário já existe!');
+
+            // Cria o usuário com uma lista de treinos vazia (a "pasta" dele)
+            dbUsuarios[user] = { senha: pass, treinos: [] };
+            salvarBD();
+            mostrarMensagem('loginMsg', 'Conta criada com sucesso! Faça login.', true);
+        }
+
+        function fazerLogin(e) {
+            e.preventDefault();
+            const user = document.getElementById('username').value.trim();
+            const pass = document.getElementById('password').value.trim();
+
+            if (dbUsuarios[user] && dbUsuarios[user].senha === pass) {
+                usuarioLogado = user;
+                localStorage.setItem('corridaApp_logado', user);
+                document.getElementById('loginForm').reset();
+                verificarSessao();
+            } else {
+                mostrarMensagem('loginMsg', 'Usuário ou senha incorretos!');
+            }
+        }
+
+        function fazerLogout() {
+            usuarioLogado = null;
+            localStorage.removeItem('corridaApp_logado');
+            verificarSessao();
+        }
+
+        function salvarBD() {
+            localStorage.setItem('corridaApp_usuarios', JSON.stringify(dbUsuarios));
+        }
+
+        // ================= FUNÇÕES DO APP DE CORRIDA =================
+
+        function formatarPace(paceDecimal) {
+            const min = Math.floor(paceDecimal);
+            const seg = Math.round((paceDecimal - min) * 60);
+            return `${min}:${seg.toString().padStart(2, '0')}`;
+        }
+
+        function atualizarDashboard() {
+            if (!usuarioLogado) return;
+            
+            const treinosDoUsuario = dbUsuarios[usuarioLogado].treinos;
+            const lista = document.getElementById('listaTreinos');
+            lista.innerHTML = '';
+            
+            let totalKm = 0;
+            let totalTempo = 0;
+
+            // Ordenar por data
+            treinosDoUsuario.sort((a, b) => new Date(a.data) - new Date(b.data));
+
+            treinosDoUsuario.forEach((t) => {
+                totalKm += parseFloat(t.distancia);
+                totalTempo += parseFloat(t.tempo);
+
+                const row = `
+                    <tr class="border-t border-gray-100 hover:bg-gray-50 transition">
+                        <td class="p-4">${new Date(t.data).toLocaleDateString('pt-BR')}</td>
+                        <td class="p-4 font-semibold">${t.distancia} km</td>
+                        <td class="p-4">${t.tempo} min</td>
+                        <td class="p-4 text-emerald-600 font-bold">${formatarPace(t.pace)}</td>
+                    </tr>
+                `;
+                lista.innerHTML += row;
+            });
+
+            // Atualiza Cards
+            document.getElementById('totalKm').innerText = totalKm.toFixed(1) + ' km';
+            document.getElementById('totalTreinos').innerText = treinosDoUsuario.length;
+            const paceGlobal = treinosDoUsuario.length > 0 ? totalTempo / totalKm : 0;
+            document.getElementById('paceMedioGlobal').innerText = formatarPace(paceGlobal);
+
+            renderizarGrafico(treinosDoUsuario);
+        }
+
+        function renderizarGrafico(treinos) {
+            const ctx = document.getElementById('graficoEvolucao').getContext('2d');
+            const labels = treinos.map(t => new Date(t.data).toLocaleDateString('pt-BR'));
+            const dadosPace = treinos.map(t => t.pace);
+
+            if (meuGrafico) meuGrafico.destroy();
+
+            meuGrafico = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Pace (min/km)',
+                        data: dadosPace,
+                        borderColor: '#10b981',
+                        backgroundColor: 'rgba(16, 185, 129, 0.1)',
+                        borderWidth: 3,
+                        fill: true,
+                        tension: 0.3
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    scales: {
+                        y: { 
+                            reverse: true,
+                            title: { display: true, text: 'Pace (Menor é mais rápido)' }
+                        }
+                    }
+                }
+            });
+        }
+
+        document.getElementById('treinoForm').addEventListener('submit', (e) => {
+            e.preventDefault();
+            
+            const data = document.getElementById('data').value;
+            const dist = parseFloat(document.getElementById('distancia').value);
+            const tempo = parseFloat(document.getElementById('tempo').value);
+            const pace = tempo / dist;
+
+            // Salva na pasta (array) específica do usuário logado
+            dbUsuarios[usuarioLogado].treinos.push({ data, distancia: dist, tempo, pace });
+            salvarBD();
+            
+            atualizarDashboard();
+            e.target.reset();
+        });
+
+        function limparDados() {
+            if(confirm("Deseja apagar TODO o seu histórico de treinos?")) {
+                dbUsuarios[usuarioLogado].treinos = []; // Limpa apenas a pasta do usuário logado
+                salvarBD();
+                atualizarDashboard();
+            }
+        }
+
+        // Inicializar a verificação ao abrir a página
+        verificarSessao();
+    </script>
+</body>
+</html>
